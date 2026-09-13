@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>建案開發產品定位專案時程管制甘特圖</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+</head>
+<body>
+
+<div class="container">
+  <header class="header">
+    <div class="header-title">
+      <h1>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+          <line x1="16" y1="2" x2="16" y2="6"></line>
+          <line x1="8" y1="2" x2="8" y2="6"></line>
+          <line x1="3" y1="10" x2="21" y2="10"></line>
+        </svg>
+        建案開發產品定位專案時程管制甘特圖
+      </h1>
+      <p id="header-subtitle">專案時程基準：D+0 至 D+98 全週期里程碑與單一成果交付清單管制</p>
+    </div>
+
+    <div class="header-controls">
+      <div class="date-picker-box locked" id="date-picker-box">
+        <label for="base-date-input">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+            <line x1="16" y1="2" x2="16" y2="6"/>
+            <line x1="8" y1="2" x2="8" y2="6"/>
+            <line x1="3" y1="10" x2="21" y2="10"/>
+          </svg>
+          起始基準日 "D" Day：
+        </label>
+        <input type="date" id="base-date-input" class="date-input" disabled title="需點擊管理授權輸入密鑰後方可修改">
+        <button class="btn-clear-date" id="btn-clear-date" disabled title="清除日期，恢復為純相對日 D 顯示">清除</button>
+        <button class="btn-auth-toggle" id="btn-auth-toggle">
+          <span id="auth-icon">🔒</span> <span id="auth-text">管理授權</span>
+        </button>
+      </div>
+
+      <div class="sync-badge" id="sync-badge-container">
+        <span class="sync-dot"></span>
+        <span id="sync-status-label">雲端連線中</span>
+      </div>
+      <button class="btn-reload" id="btn-reload">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+        </svg>
+        同步最新資料
+      </button>
+    </div>
+  </header>
+
+  <section class="stats-row">
+    <div class="stat-card">
+      <div class="label">目前管制項目</div>
+      <div class="value" id="stat-total-rows">0 項</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">關鍵審查會議</div>
+      <div class="value" style="color: #ea580c;" id="stat-total-milestones">0 次</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">落後警示項目</div>
+      <div class="value" style="color: #dc2626;" id="stat-total-delays">0 項</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">專案時程進度 (今日)</div>
+      <div class="value" style="color: #2563eb; font-size: 15px; margin-top: 6px;" id="stat-today-status">計算中...</div>
+    </div>
+  </section>
+
+  <nav class="control-panel">
+    <div class="filter-group" id="filter-container">
+      <span class="filter-label">負責單位篩選：</span>
+      <button class="filter-btn active" data-owner="all">全部單位</button>
+    </div>
+  </nav>
+
+  <main class="gantt-wrapper">
+    <div id="loading-overlay">
+      <div class="spinner"></div>
+      <div id="loading-text">正在向雲端請求最新資料...</div>
+    </div>
+
+    <div class="gantt-scroll-container">
+      <table class="gantt-table">
+        <thead>
+          <tr class="gantt-header-row">
+            <th class="col-id">代碼</th>
+            <th class="col-task">管制節點 / 任務名稱</th>
+            <th class="col-owner">負責單位</th>
+            <th class="col-actual">實際完成日</th>
+            <th class="col-delay">落後天數</th>
+            <th class="col-deliverable">交付成果 / 應用表單</th>
+            <th class="col-timeline" id="timeline-header-title">
+              <span id="timeline-title-text">時程軸</span>
+              <div class="timeline-ruler" id="ruler-container"></div>
+            </th>
+          </tr>
+        </thead>
+        <tbody id="gantt-tbody"></tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<aside id="tooltip" aria-hidden="true">
+  <div class="tt-title" id="tt-title"></div>
+  <div class="tt-row"><span class="tt-label">所屬階段：</span><span id="tt-section"></span></div>
+  <div class="tt-row"><span class="tt-label">負責單位：</span><span id="tt-owner"></span></div>
+  <div class="tt-row"><span class="tt-label">預定時程：</span><span id="tt-period"></span></div>
+  <div class="tt-row"><span class="tt-label">實際完成：</span><span id="tt-actual-finish"></span></div>
+  <div class="tt-row"><span class="tt-label">落後狀況：</span><span id="tt-delay-status"></span></div>
+  <div class="tt-row"><span class="tt-label">前置相依：</span><span id="tt-deps"></span></div>
+  <div class="tt-row deliverable-box">
+    <span class="tt-label">交付表單/成果：</span><br>
+    <span id="tt-deliverable" style="color: #38bdf8; font-weight: 500;"></span>
+  </div>
+</aside>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
